@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Asistencia">
+  <meta name="description" content="Control de asistencia y niveles deportivos con sincronización a Google Sheets">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Control de Asistencia Deportiva</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css?v=2.1">
+</head>
+<body>
+  <!-- Header Principal -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+            <path d="M4 22h16"></path>
+            <path d="M10 14.66V17c0 .55-.45 1-1 1H7"></path>
+            <path d="M14 14.66V17c0 .55.45 1 1 1h2"></path>
+            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>Asistencia Deportiva</h1>
+          <span id="sync-status" class="status-pill status-demo">Modo Demo</span>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button id="btn-open-settings" class="icon-btn" title="Configurar conexión con Google Sheets" aria-label="Configurar">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Barra de Fecha -->
+    <div class="date-bar">
+      <button id="btn-prev-day" class="date-nav-btn" aria-label="Día anterior">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      
+      <div class="date-display-wrapper">
+        <input type="date" id="date-picker" class="date-input">
+        <span id="date-label" class="date-label">Hoy</span>
+      </div>
+      
+      <button id="btn-next-day" class="date-nav-btn" aria-label="Día siguiente">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <main class="main-content">
+    <!-- Barra de Métricas y Búsqueda -->
+    <section class="controls-panel">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="search" id="search-input" placeholder="Buscar por nombre..." autocomplete="off">
+        <button id="btn-clear-search" class="clear-search-btn" style="display: none;" aria-label="Limpiar búsqueda">&times;</button>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-badge">
+          <span class="stat-dot present-dot"></span>
+          <span>Presentes: <strong id="present-count">0</strong>/<span id="total-count">0</span></span>
+        </div>
+        
+        <div class="quick-actions">
+          <button id="btn-toggle-all" class="text-btn">Marcar todos</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Notificación / Banner de Estado Offline o Sin Configuración -->
+    <div id="banner-notice" class="banner-notice" style="display: none;">
+      <span id="banner-text">Conecta tu Google Sheets para guardar en tu nube.</span>
+      <button id="btn-banner-action" class="btn-banner-action">Configurar</button>
+    </div>
+
+    <!-- Lista de Participantes -->
+    <section class="list-section">
+      <div id="participants-list" class="participants-list">
+        <!-- Generado dinámicamente -->
+      </div>
+      
+      <!-- Estado Vacío -->
+      <div id="empty-state" class="empty-state" style="display: none;">
+        <div class="empty-icon">👥</div>
+        <h3>No hay participantes</h3>
+        <p>Agrega el primer participante con el botón inferior.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Barra Flotante Inferior -->
+  <footer class="bottom-bar">
+    <button id="btn-add-student" class="btn btn-secondary">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      <span>Nuevo</span>
+    </button>
+    
+    <button id="btn-save-all" class="btn btn-primary">
+      <svg id="save-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+        <polyline points="7 3 7 8 15 8"></polyline>
+      </svg>
+      <span id="save-btn-text">Guardar Asistencia</span>
+    </button>
+  </footer>
+
+  <!-- MODAL: Nuevo Participante -->
+  <div id="modal-new-student" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Nuevo Participante</h2>
+        <button class="modal-close" id="btn-close-new-student">&times;</button>
+      </div>
+      <form id="form-new-student">
+        <div class="form-group">
+          <label for="student-name">Nombre y Apellido</label>
+          <input type="text" id="student-name" placeholder="Ej: Camilo Pérez" required autofocus>
+          <p class="field-hint">Se agregará al listado y a tu planilla de Google Sheets.</p>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="btn-cancel-new-student">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-student">Agregar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Configuración Google Sheets -->
+  <div id="modal-settings" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Conexión con Google Sheets</h2>
+        <button class="modal-close" id="btn-close-settings">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="settings-desc">
+          Pega aquí la URL de la aplicación web generada desde Google Apps Script en tu planilla.
+        </p>
+        
+        <div class="form-group">
+          <label for="apps-script-url">URL de Aplicación Web (Apps Script)</label>
+          <input type="url" id="apps-script-url" placeholder="https://script.google.com/macros/s/.../exec">
+          <p class="field-hint">Termina en <code>/exec</code></p>
+        </div>
+
+        <div class="settings-test-row">
+          <button type="button" id="btn-test-connection" class="btn btn-outline btn-sm">
+            Probar Conexión
+          </button>
+          <span id="test-result" class="test-result"></span>
+        </div>
+
+        <div class="instructions-accordion">
+          <details>
+            <summary>¿Cómo obtener esta URL? (Pasos rápidos)</summary>
+            <ol>
+              <li>Abre tu planilla en Google Sheets.</li>
+              <li>Menú: <strong>Extensiones</strong> &gt; <strong>Apps Script</strong>.</li>
+              <li>Pega el código de <code>google-apps-script/Code.gs</code> y guarda.</li>
+              <li>Botón azul <strong>Implementar</strong> &gt; <strong>Nueva implementación</strong>.</li>
+              <li>Tipo: <strong>Aplicación web</strong>.</li>
+              <li>Acceso: <strong>Cualquiera</strong>.</li>
+              <li>Copia la URL que termina en <code>/exec</code>.</li>
+            </ol>
+          </details>
+        </div>
+
+        <div class="form-group" style="margin-top: 1.25rem;">
+          <button type="button" id="btn-reset-demo" class="text-danger-btn">
+            Restablecer a datos de prueba (Demo)
+          </button>
+        </div>
+      </div>
+      
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" id="btn-cancel-settings">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="btn-save-settings">Guardar y Sincronizar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js?v=2.1"></script>
+</body>
+</html>
