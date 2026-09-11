@@ -16,10 +16,47 @@ const DEMO_PARTICIPANTS = [
   { id: 8, name: "Valentina Rojas", bestLevel: 8, currentLevel: null, present: false }
 ];
 
+// =========================================================================
+// URL PREDETERMINADA DE GOOGLE APPS SCRIPT
+// =========================================================================
+// Si deseas dejar la app 100% preconfigurada en GitHub, puedes pegar tu URL que termina en /exec aquí:
+const DEFAULT_GAS_URL = "";
+
+/**
+ * Obtiene la URL de Apps Script analizando parámetros de URL (?api=...),
+ * memoria local del teléfono (localStorage) o la URL por defecto.
+ */
+function getInitialGasUrl() {
+  // 1. Detectar si el enlace compartido trae el parámetro ?api=... o ?gas=...
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const paramUrl = params.get('api') || params.get('gas');
+    if (paramUrl) {
+      const clean = paramUrl.trim().replace(/^["']|["']$/g, '');
+      if (clean.startsWith('https://script.google.com/macros/s/')) {
+        localStorage.setItem('asistencia_gas_url', clean);
+        // Limpiar la URL de la barra del navegador para que quede prolija
+        try {
+          const cleanPath = window.location.pathname + window.location.hash;
+          window.history.replaceState({}, document.title, cleanPath);
+        } catch (e) {}
+        return clean;
+      }
+    }
+  } catch (e) {}
+
+  // 2. Si ya estaba guardada en este teléfono
+  const saved = localStorage.getItem('asistencia_gas_url');
+  if (saved && saved.trim()) return saved.trim();
+
+  // 3. Usar constante predeterminada si existe
+  return DEFAULT_GAS_URL;
+}
+
 // Estado global de la aplicación
 const AppState = {
   date: getTodayDateString(),
-  gasUrl: localStorage.getItem('asistencia_gas_url') || '',
+  gasUrl: getInitialGasUrl(),
   participants: [],
   searchQuery: '',
   sortMode: localStorage.getItem('asistencia_sort_mode') || 'sheet',
@@ -50,6 +87,21 @@ const DOM = {
   btnSaveAll: document.getElementById('btn-save-all'),
   saveBtnText: document.getElementById('save-btn-text'),
   saveIcon: document.getElementById('save-icon'),
+  // Compartir e Instalar
+  btnShareApp: document.getElementById('btn-share-app'),
+  installBanner: document.getElementById('install-banner'),
+  btnInstallApp: document.getElementById('btn-install-app'),
+  btnDismissInstall: document.getElementById('btn-dismiss-install'),
+  modalShare: document.getElementById('modal-share'),
+  btnCloseShare: document.getElementById('btn-close-share'),
+  btnCloseShareBottom: document.getElementById('btn-close-share-bottom'),
+  btnShareWhatsapp: document.getElementById('btn-share-whatsapp'),
+  btnCopyShareLink: document.getElementById('btn-copy-share-link'),
+  copyBtnLabel: document.getElementById('copy-btn-label'),
+  shareLinkInput: document.getElementById('share-link-input'),
+  modalIosInstall: document.getElementById('modal-ios-install'),
+  btnCloseIosInstall: document.getElementById('btn-close-ios-install'),
+  btnDismissIosModal: document.getElementById('btn-dismiss-ios-modal'),
   // Modal Nuevo Participante
   modalNewStudent: document.getElementById('modal-new-student'),
   formNewStudent: document.getElementById('form-new-student'),
@@ -74,7 +126,7 @@ const DOM = {
 // INICIALIZACIÓN
 // =========================================================================
 // Control de versiones para forzar actualización de archivos en el navegador
-const APP_VERSION = '2.2';
+const APP_VERSION = '2.3';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Si la versión guardada es diferente o no existe, limpiar caché de la PWA
@@ -94,6 +146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadData();
   registerServiceWorker();
   updateOnlineStatus();
+  initInstallPrompt();
 });
 
 function initDatePicker() {
@@ -193,6 +246,40 @@ function initEventListeners() {
   DOM.btnSaveSettings.addEventListener('click', saveSettings);
   DOM.btnTestConnection.addEventListener('click', testConnection);
   DOM.btnResetDemo.addEventListener('click', resetToDemo);
+
+  // Compartir App
+  if (DOM.btnShareApp) {
+    DOM.btnShareApp.addEventListener('click', openShareModal);
+  }
+  if (DOM.btnCloseShare) {
+    DOM.btnCloseShare.addEventListener('click', () => closeModal(DOM.modalShare));
+  }
+  if (DOM.btnCloseShareBottom) {
+    DOM.btnCloseShareBottom.addEventListener('click', () => closeModal(DOM.modalShare));
+  }
+  if (DOM.btnShareWhatsapp) {
+    DOM.btnShareWhatsapp.addEventListener('click', shareViaWhatsapp);
+  }
+  if (DOM.btnCopyShareLink) {
+    DOM.btnCopyShareLink.addEventListener('click', copyShareLink);
+  }
+
+  // Instalación Móvil (PWA)
+  if (DOM.btnInstallApp) {
+    DOM.btnInstallApp.addEventListener('click', handleInstallClick);
+  }
+  if (DOM.btnDismissInstall) {
+    DOM.btnDismissInstall.addEventListener('click', () => {
+      if (DOM.installBanner) DOM.installBanner.style.display = 'none';
+      localStorage.setItem('install_dismissed', 'true');
+    });
+  }
+  if (DOM.btnCloseIosInstall) {
+    DOM.btnCloseIosInstall.addEventListener('click', () => closeModal(DOM.modalIosInstall));
+  }
+  if (DOM.btnDismissIosModal) {
+    DOM.btnDismissIosModal.addEventListener('click', () => closeModal(DOM.modalIosInstall));
+  }
 
   // Eventos de conexión
   window.addEventListener('online', updateOnlineStatus);
@@ -909,12 +996,100 @@ function escapeHtml(text) {
 }
 
 // =========================================================================
+// COMPARTIR APP E INSTALACIÓN PWA
+// =========================================================================
+let deferredInstallPrompt = null;
+
+function isIos() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function getShareUrl() {
+  const base = window.location.origin + window.location.pathname;
+  const gas = AppState.gasUrl || DEFAULT_GAS_URL;
+  if (gas && gas.startsWith('https://script.google.com/macros/s/')) {
+    return `${base}?api=${encodeURIComponent(gas)}`;
+  }
+  return base;
+}
+
+function openShareModal() {
+  const shareUrl = getShareUrl();
+  if (DOM.shareLinkInput) DOM.shareLinkInput.value = shareUrl;
+  if (DOM.copyBtnLabel) DOM.copyBtnLabel.textContent = 'Copiar enlace listo';
+  openModal(DOM.modalShare);
+}
+
+function shareViaWhatsapp() {
+  const shareUrl = getShareUrl();
+  const text = `¡Hola! Aquí tienes la app para tomar la asistencia del curso deportivo: ${shareUrl}\n\n(Al abrirla en tu teléfono ya viene conectada a la planilla y puedes agregarla a tu pantalla de inicio como app).`;
+  const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+  window.open(whatsappUrl, '_blank');
+}
+
+async function copyShareLink() {
+  const shareUrl = getShareUrl();
+  try {
+    await navigator.clipboard.writeText(shareUrl);
+    if (DOM.copyBtnLabel) DOM.copyBtnLabel.textContent = '✓ ¡Enlace copiado!';
+    showToast('Enlace listo copiado al portapapeles', 'success');
+    setTimeout(() => {
+      if (DOM.copyBtnLabel) DOM.copyBtnLabel.textContent = 'Copiar enlace listo';
+    }, 2500);
+  } catch (err) {
+    if (DOM.shareLinkInput) {
+      DOM.shareLinkInput.select();
+      document.execCommand('copy');
+      showToast('Enlace copiado', 'success');
+    }
+  }
+}
+
+function handleInstallClick() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        if (DOM.installBanner) DOM.installBanner.style.display = 'none';
+      }
+      deferredInstallPrompt = null;
+    });
+  } else if (isIos()) {
+    openModal(DOM.modalIosInstall);
+  } else {
+    showToast('En el menú del navegador toca "Instalar aplicación" o "Agregar a pantalla principal"', 'success');
+  }
+}
+
+function initInstallPrompt() {
+  // Capturar evento de instalación nativa en Android/Chrome
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if (!isStandalone() && localStorage.getItem('install_dismissed') !== 'true') {
+      if (DOM.installBanner) DOM.installBanner.style.display = 'flex';
+    }
+  });
+
+  // Si es iPhone y no es standalone, mostrar banner de instalación si no fue descartado
+  if (!isStandalone() && localStorage.getItem('install_dismissed') !== 'true') {
+    if (isIos() && DOM.installBanner) {
+      DOM.installBanner.style.display = 'flex';
+    }
+  }
+}
+
+// =========================================================================
 // SERVICE WORKER PARA PWA
 // =========================================================================
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=2.2')
+      navigator.serviceWorker.register('sw.js?v=2.3')
         .then(reg => {
           reg.update();
           console.log('Service Worker registrado con éxito:', reg.scope);
