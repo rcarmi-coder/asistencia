@@ -16,7 +16,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=2.1">
+  <link rel="stylesheet" href="styles.css?v=2.2">
 </head>
 <body>
   <!-- Header Principal -->
@@ -92,6 +92,29 @@
         <div class="quick-actions">
           <button id="btn-toggle-all" class="text-btn">Marcar todos</button>
         </div>
+      </div>
+
+      <!-- Barra de Ordenamiento -->
+      <div class="sort-bar">
+        <div class="sort-label-group">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="21" y1="10" x2="7" y2="10"></line>
+            <line x1="21" y1="6" x2="3" y2="6"></line>
+            <line x1="21" y1="14" x2="11" y2="14"></line>
+            <line x1="21" y1="18" x2="15" y2="18"></line>
+          </svg>
+          <span>Orden:</span>
+          <select id="sort-select" class="sort-select" aria-label="Criterio de orden">
+            <option value="sheet">📋 Planilla (Original)</option>
+            <option value="custom">✋ Mi Orden Personalizado</option>
+            <option value="alpha">🔤 Alfabético (A - Z)</option>
+            <option value="level-desc">🏆 Mayor Nivel</option>
+            <option value="present-first">✅ Presentes primero</option>
+          </select>
+        </div>
+        <button id="btn-toggle-reorder" class="btn-reorder-toggle" title="Subir o bajar alumnos para definir tu orden personalizado">
+          ⇅ Organizar
+        </button>
       </div>
     </section>
 
@@ -214,6 +237,6 @@
   <!-- Toast Notification -->
   <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=2.1"></script>
+  <script src="app.js?v=2.2"></script>
 </body>
 </html>
