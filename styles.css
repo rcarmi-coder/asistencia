@@ -310,6 +310,64 @@ body {
   opacity: 0.7;
 }
 
+/* Barra de Ordenamiento */
+.sort-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.4rem 0.65rem;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.sort-label-group {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.sort-select {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.sort-select option {
+  background: #1e2942;
+  color: #ffffff;
+}
+
+.btn-reorder-toggle {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.btn-reorder-toggle.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+
 /* Banner */
 .banner-notice {
   background: rgba(234, 179, 8, 0.12);
@@ -412,15 +470,16 @@ body {
   flex: 1;
   min-width: 0;
   cursor: pointer;
+  padding-right: 0.25rem;
 }
 
 .participant-name {
-  font-size: 1.05rem;
+  font-size: 0.985rem;
   font-weight: 600;
   color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.25;
   letter-spacing: -0.01em;
 }
 
@@ -428,7 +487,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 0.2rem;
+  margin-top: 0.25rem;
 }
 
 .badge-level {
@@ -447,6 +506,43 @@ body {
   background: rgba(56, 189, 248, 0.1);
 }
 
+/* Botones de Reordenar */
+.reorder-actions {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  margin-right: -2px;
+  flex-shrink: 0;
+}
+
+body.is-reordering .reorder-actions {
+  display: flex;
+}
+
+body.is-reordering .check-target {
+  display: none;
+}
+
+.btn-move {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  width: 32px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.btn-move:active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
 /* Columna Derecha: Selector de Nivel (1 al 12) */
 .level-picker-container {
   display: flex;
@@ -457,7 +553,7 @@ body {
 }
 
 .level-label {
-  font-size: 0.675rem;
+  font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -474,14 +570,14 @@ body {
   background: var(--bg-surface-elevated);
   border: 1.5px solid var(--border-color);
   color: var(--text-primary);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  padding: 0.45rem 1.8rem 0.45rem 0.75rem;
+  padding: 0.45rem 1.6rem 0.45rem 0.65rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
   outline: none;
   transition: all 0.2s;
-  min-width: 105px;
+  min-width: 90px;
   text-align: left;
 }
 

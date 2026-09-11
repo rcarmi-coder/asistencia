@@ -22,6 +22,8 @@ const AppState = {
   gasUrl: localStorage.getItem('asistencia_gas_url') || '',
   participants: [],
   searchQuery: '',
+  sortMode: localStorage.getItem('asistencia_sort_mode') || 'sheet',
+  isReordering: false,
   isOnline: navigator.onLine,
   isSaving: false
 };
@@ -37,6 +39,8 @@ const DOM = {
   btnBannerAction: document.getElementById('btn-banner-action'),
   searchInput: document.getElementById('search-input'),
   btnClearSearch: document.getElementById('btn-clear-search'),
+  sortSelect: document.getElementById('sort-select'),
+  btnToggleReorder: document.getElementById('btn-toggle-reorder'),
   presentCount: document.getElementById('present-count'),
   totalCount: document.getElementById('total-count'),
   btnToggleAll: document.getElementById('btn-toggle-all'),
@@ -70,7 +74,7 @@ const DOM = {
 // INICIALIZACIÓN
 // =========================================================================
 // Control de versiones para forzar actualización de archivos en el navegador
-const APP_VERSION = '2.1';
+const APP_VERSION = '2.2';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Si la versión guardada es diferente o no existe, limpiar caché de la PWA
@@ -147,6 +151,32 @@ function initEventListeners() {
   // Marcar / Desmarcar todos
   DOM.btnToggleAll.addEventListener('click', toggleAllAttendance);
 
+  // Ordenamiento
+  if (DOM.sortSelect) {
+    DOM.sortSelect.value = AppState.sortMode;
+    DOM.sortSelect.addEventListener('change', (e) => {
+      AppState.sortMode = e.target.value;
+      localStorage.setItem('asistencia_sort_mode', AppState.sortMode);
+      renderParticipants();
+    });
+  }
+
+  if (DOM.btnToggleReorder) {
+    DOM.btnToggleReorder.addEventListener('click', () => {
+      AppState.isReordering = !AppState.isReordering;
+      document.body.classList.toggle('is-reordering', AppState.isReordering);
+      DOM.btnToggleReorder.classList.toggle('active', AppState.isReordering);
+      DOM.btnToggleReorder.textContent = AppState.isReordering ? '✓ Listo' : '⇅ Organizar';
+      if (AppState.isReordering) {
+        AppState.sortMode = 'custom';
+        if (DOM.sortSelect) DOM.sortSelect.value = 'custom';
+        localStorage.setItem('asistencia_sort_mode', 'custom');
+        showToast('Toca ▲ o ▼ para mover participantes a tu gusto', 'success');
+      }
+      renderParticipants();
+    });
+  }
+
   // Guardar asistencia
   DOM.btnSaveAll.addEventListener('click', saveAttendance);
 
@@ -205,7 +235,10 @@ async function loadData() {
     
     const data = await res.json();
     if (data.success && Array.isArray(data.participants)) {
-      AppState.participants = data.participants;
+      AppState.participants = data.participants.map((p, idx) => ({
+        ...p,
+        orderIndex: p.orderIndex !== undefined ? p.orderIndex : idx
+      }));
       // Guardar copia local en caché
       saveLocalCache(AppState.date, AppState.participants);
       renderParticipants();
@@ -262,10 +295,88 @@ function saveLocalCache(dateStr, participants) {
 }
 
 // =========================================================================
+// GESTIÓN DE ORDENAMIENTO DE PARTICIPANTES
+// =========================================================================
+function getCustomOrder() {
+  try {
+    const raw = localStorage.getItem('asistencia_custom_order');
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveCustomOrder(namesList) {
+  localStorage.setItem('asistencia_custom_order', JSON.stringify(namesList));
+}
+
+function sortParticipantsList(list) {
+  const mode = AppState.sortMode; // 'sheet', 'custom', 'alpha', 'level-desc', 'present-first'
+  const copy = [...list];
+
+  if (mode === 'alpha') {
+    return copy.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+  }
+  
+  if (mode === 'level-desc') {
+    return copy.sort((a, b) => (b.bestLevel || 0) - (a.bestLevel || 0));
+  }
+  
+  if (mode === 'present-first') {
+    return copy.sort((a, b) => (b.present ? 1 : 0) - (a.present ? 1 : 0));
+  }
+  
+  if (mode === 'custom') {
+    const customOrder = getCustomOrder();
+    if (customOrder.length > 0) {
+      return copy.sort((a, b) => {
+        const idxA = customOrder.indexOf(a.name.trim().toLowerCase());
+        const idxB = customOrder.indexOf(b.name.trim().toLowerCase());
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return (a.orderIndex ?? a.id ?? 0) - (b.orderIndex ?? b.id ?? 0);
+      });
+    }
+  }
+
+  // 'sheet' por defecto: Conserva el orden original de las filas de Google Sheets
+  return copy.sort((a, b) => (a.orderIndex ?? a.id ?? 0) - (b.orderIndex ?? b.id ?? 0));
+}
+
+function moveParticipant(participant, direction) {
+  // Activar modo personalizado
+  AppState.sortMode = 'custom';
+  if (DOM.sortSelect) DOM.sortSelect.value = 'custom';
+  localStorage.setItem('asistencia_sort_mode', 'custom');
+
+  // Obtener la lista ordenada actualmente
+  const sorted = sortParticipantsList(AppState.participants);
+  const index = sorted.findIndex(p => p.name.trim().toLowerCase() === participant.name.trim().toLowerCase());
+  if (index === -1) return;
+
+  const targetIndex = index + direction;
+  if (targetIndex < 0 || targetIndex >= sorted.length) return;
+
+  // Intercambiar
+  const temp = sorted[index];
+  sorted[index] = sorted[targetIndex];
+  sorted[targetIndex] = temp;
+
+  // Guardar en custom order
+  saveCustomOrder(sorted.map(p => p.name.trim().toLowerCase()));
+
+  // Re-renderizar
+  renderParticipants();
+}
+
+// =========================================================================
 // RENDERIZADO DE PARTICIPANTES
 // =========================================================================
 function renderParticipants() {
-  const filtered = AppState.participants.filter(p => 
+  const sorted = sortParticipantsList(AppState.participants);
+
+  const filtered = sorted.filter(p => 
     p.name.toLowerCase().includes(AppState.searchQuery)
   );
 
@@ -275,8 +386,8 @@ function renderParticipants() {
     DOM.emptyState.style.display = 'block';
   } else {
     DOM.emptyState.style.display = 'none';
-    filtered.forEach(participant => {
-      const card = createParticipantCard(participant);
+    filtered.forEach((participant, idx) => {
+      const card = createParticipantCard(participant, idx, filtered.length);
       DOM.participantsList.appendChild(card);
     });
   }
@@ -284,10 +395,39 @@ function renderParticipants() {
   updateStats();
 }
 
-function createParticipantCard(p) {
+function createParticipantCard(p, index, total) {
   const card = document.createElement('div');
   card.className = `participant-card ${p.present ? 'is-present' : ''}`;
   card.dataset.id = p.id || p.name;
+
+  // 0. Botones de Reordenar (▲ y ▼)
+  const reorderActions = document.createElement('div');
+  reorderActions.className = 'reorder-actions';
+
+  const btnUp = document.createElement('button');
+  btnUp.className = 'btn-move btn-move-up';
+  btnUp.type = 'button';
+  btnUp.setAttribute('aria-label', `Subir ${p.name}`);
+  btnUp.textContent = '▲';
+  btnUp.disabled = (index === 0);
+  btnUp.addEventListener('click', (e) => {
+    e.stopPropagation();
+    moveParticipant(p, -1);
+  });
+
+  const btnDown = document.createElement('button');
+  btnDown.className = 'btn-move btn-move-down';
+  btnDown.type = 'button';
+  btnDown.setAttribute('aria-label', `Bajar ${p.name}`);
+  btnDown.textContent = '▼';
+  btnDown.disabled = (index === total - 1);
+  btnDown.addEventListener('click', (e) => {
+    e.stopPropagation();
+    moveParticipant(p, 1);
+  });
+
+  reorderActions.appendChild(btnUp);
+  reorderActions.appendChild(btnDown);
 
   // 1. Checkbox táctil a la izquierda
   const checkTarget = document.createElement('div');
@@ -393,6 +533,7 @@ function createParticipantCard(p) {
   levelContainer.appendChild(levelLabel);
   levelContainer.appendChild(selectWrapper);
 
+  card.appendChild(reorderActions);
   card.appendChild(checkTarget);
   card.appendChild(info);
   card.appendChild(levelContainer);
@@ -773,7 +914,7 @@ function escapeHtml(text) {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=2.1')
+      navigator.serviceWorker.register('sw.js?v=2.2')
         .then(reg => {
           reg.update();
           console.log('Service Worker registrado con éxito:', reg.scope);
