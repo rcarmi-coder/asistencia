@@ -126,7 +126,7 @@ const DOM = {
 // INICIALIZACIÓN
 // =========================================================================
 // Control de versiones para forzar actualización de archivos en el navegador
-const APP_VERSION = '2.5';
+const APP_VERSION = '2.6';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Si la versión guardada es diferente o no existe, limpiar caché de la PWA
@@ -347,7 +347,10 @@ function loadInstantData() {
     try {
       const parsed = JSON.parse(cached);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        AppState.participants = parsed;
+        AppState.participants = parsed.map(p => ({
+          ...p,
+          userModified: false
+        }));
         renderParticipants();
         return;
       }
@@ -359,14 +362,16 @@ function loadInstantData() {
 }
 
 /**
- * Fusiona los participantes traídos del servidor con el estado en pantalla,
- * conservando los checks o niveles que el usuario haya tocado mientras conectaba.
+ * Fusiona los participantes traídos del servidor con el estado en pantalla:
+ * Si el usuario modificó explícitamente a un alumno en esta sesión activa (con su dedo),
+ * se respeta esa marca local. Si no, Google Sheets es la fuente definitiva de la verdad.
  */
 function mergeServerParticipants(serverList) {
   if (!AppState.participants || AppState.participants.length === 0) {
     AppState.participants = serverList.map((p, idx) => ({
       ...p,
-      orderIndex: p.orderIndex !== undefined ? p.orderIndex : idx
+      orderIndex: p.orderIndex !== undefined ? p.orderIndex : idx,
+      userModified: false
     }));
     return;
   }
@@ -382,18 +387,20 @@ function mergeServerParticipants(serverList) {
     const key = serverP.name.trim().toLowerCase();
     const localP = localMap.get(key);
     if (localP) {
+      const isUserEdited = localP.userModified === true;
       return {
         ...serverP,
-        present: localP.userModified ? localP.present : (serverP.present || localP.present),
-        currentLevel: localP.userModified ? localP.currentLevel : (serverP.currentLevel ?? localP.currentLevel),
+        present: isUserEdited ? localP.present : serverP.present,
+        currentLevel: isUserEdited ? localP.currentLevel : serverP.currentLevel,
         bestLevel: serverP.bestLevel ?? localP.bestLevel,
         orderIndex: serverP.orderIndex !== undefined ? serverP.orderIndex : idx,
-        userModified: localP.userModified || false
+        userModified: isUserEdited
       };
     }
     return {
       ...serverP,
-      orderIndex: serverP.orderIndex !== undefined ? serverP.orderIndex : idx
+      orderIndex: serverP.orderIndex !== undefined ? serverP.orderIndex : idx,
+      userModified: false
     };
   });
 }
@@ -1232,7 +1239,7 @@ function initInstallPrompt() {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=2.5')
+      navigator.serviceWorker.register('sw.js?v=2.6')
         .then(reg => {
           reg.update();
           console.log('Service Worker registrado con éxito:', reg.scope);
