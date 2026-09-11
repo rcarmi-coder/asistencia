@@ -20,7 +20,7 @@ const DEMO_PARTICIPANTS = [
 // URL PREDETERMINADA DE GOOGLE APPS SCRIPT
 // =========================================================================
 // Si deseas dejar la app 100% preconfigurada en GitHub, puedes pegar tu URL que termina en /exec aquí:
-const DEFAULT_GAS_URL = "";
+const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbx1tr_XAKQn0Koe6G8HEUVd5ipaExJ2_mFW1brI75IMufqPFTzVyt5JRV3y8BBBz54p/exec";
 
 /**
  * Obtiene la URL de Apps Script analizando parámetros de URL (?api=...),
@@ -126,7 +126,7 @@ const DOM = {
 // INICIALIZACIÓN
 // =========================================================================
 // Control de versiones para forzar actualización de archivos en el navegador
-const APP_VERSION = '2.3';
+const APP_VERSION = '2.5';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Si la versión guardada es diferente o no existe, limpiar caché de la PWA
@@ -281,7 +281,18 @@ function initEventListeners() {
     DOM.btnDismissIosModal.addEventListener('click', () => closeModal(DOM.modalIosInstall));
   }
 
-  // Eventos de conexión
+  // Eventos de conexión y reintento manual
+  if (DOM.syncStatus) {
+    DOM.syncStatus.addEventListener('click', () => {
+      if (!AppState.gasUrl) {
+        openSettingsModal();
+      } else {
+        showToast('Sincronizando con Google Sheets...', 'info');
+        loadData(true);
+      }
+    });
+  }
+
   window.addEventListener('online', updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
 }
@@ -298,74 +309,198 @@ function changeDayOffset(offset) {
 }
 
 // =========================================================================
-// CARGA Y PERSISTENCIA DE DATOS
+// CARGA Y PERSISTENCIA DE DATOS DE ALTA VELOCIDAD (INSTANT-FIRST)
 // =========================================================================
-async function loadData() {
-  updateSyncBadge();
 
-  // 1. Si no hay URL configurada, usar modo Demo local
+/**
+ * Petición fetch con timeout controlado mediante AbortController.
+ * Evita que el navegador se quede esperando colgado por más de 1 minuto.
+ */
+async function fetchWithTimeout(url, options = {}, timeoutMs = 14000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    return res;
+  } catch (err) {
+    clearTimeout(timer);
+    if (err.name === 'AbortError') {
+      throw new Error(`Tiempo de espera agotado (${Math.round(timeoutMs / 1000)}s)`);
+    }
+    throw err;
+  }
+}
+
+/**
+ * Carga instantánea (0 ms) desde la memoria del teléfono.
+ * Permite que el profesor vea inmediatamente sus participantes sin esperar a internet.
+ */
+function loadInstantData() {
+  const cacheKey = `asistencia_${AppState.date}`;
+  const cached = localStorage.getItem(cacheKey);
+
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        AppState.participants = parsed;
+        renderParticipants();
+        return;
+      }
+    } catch (e) {}
+  }
+
+  AppState.participants = loadBaseParticipants();
+  renderParticipants();
+}
+
+/**
+ * Fusiona los participantes traídos del servidor con el estado en pantalla,
+ * conservando los checks o niveles que el usuario haya tocado mientras conectaba.
+ */
+function mergeServerParticipants(serverList) {
+  if (!AppState.participants || AppState.participants.length === 0) {
+    AppState.participants = serverList.map((p, idx) => ({
+      ...p,
+      orderIndex: p.orderIndex !== undefined ? p.orderIndex : idx
+    }));
+    return;
+  }
+
+  const localMap = new Map();
+  AppState.participants.forEach(p => {
+    if (p && p.name) {
+      localMap.set(p.name.trim().toLowerCase(), p);
+    }
+  });
+
+  AppState.participants = serverList.map((serverP, idx) => {
+    const key = serverP.name.trim().toLowerCase();
+    const localP = localMap.get(key);
+    if (localP) {
+      return {
+        ...serverP,
+        present: localP.userModified ? localP.present : (serverP.present || localP.present),
+        currentLevel: localP.userModified ? localP.currentLevel : (serverP.currentLevel ?? localP.currentLevel),
+        bestLevel: serverP.bestLevel ?? localP.bestLevel,
+        orderIndex: serverP.orderIndex !== undefined ? serverP.orderIndex : idx,
+        userModified: localP.userModified || false
+      };
+    }
+    return {
+      ...serverP,
+      orderIndex: serverP.orderIndex !== undefined ? serverP.orderIndex : idx
+    };
+  });
+}
+
+/**
+ * Carga de datos híbrida (Stale-While-Revalidate):
+ * 1. Muestra los datos locales al instante (0ms).
+ * 2. Consulta Google Sheets en segundo plano con reintento automático y timeout ágil.
+ */
+async function loadData(isManual = false) {
+  // PASO 1: Renderizado instantáneo (0ms)
+  loadInstantData();
+
+  // Si no hay URL configurada, operar en modo Demo
   if (!AppState.gasUrl) {
-    loadLocalData();
     DOM.bannerNotice.style.display = 'flex';
+    setSyncStatus('Modo Demo', 'status-demo');
     return;
   }
 
   DOM.bannerNotice.style.display = 'none';
-  setSyncStatus('Cargando...', 'status-pending');
+  setSyncStatus('Sincronizando...', 'status-pending');
 
   try {
-    // Petición a Google Apps Script
-    const url = `${AppState.gasUrl}?date=${encodeURIComponent(AppState.date)}`;
-    const res = await fetch(url, { method: 'GET' });
-    
-    if (!res.ok) throw new Error('Error al conectar con Google Sheets');
-    
+    const url = `${AppState.gasUrl}?date=${encodeURIComponent(AppState.date)}&_t=${Date.now()}`;
+    let res;
+
+    try {
+      // Intento 1: Timeout de 14 segundos (si Apps Script estaba en 'sleep', esto lo despierta)
+      res = await fetchWithTimeout(url, { method: 'GET' }, 14000);
+    } catch (firstErr) {
+      console.warn('Primer intento lento (despertando servidor de Google). Reintentando de inmediato...', firstErr);
+      setSyncStatus('Conectando...', 'status-pending');
+      // Intento 2: Inmediato (aprovecha que el primer intento ya activó el contenedor V8)
+      res = await fetchWithTimeout(url, { method: 'GET' }, 16000);
+    }
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
     const data = await res.json();
     if (data.success && Array.isArray(data.participants)) {
-      AppState.participants = data.participants.map((p, idx) => ({
-        ...p,
-        orderIndex: p.orderIndex !== undefined ? p.orderIndex : idx
-      }));
-      // Guardar copia local en caché
+      mergeServerParticipants(data.participants);
       saveLocalCache(AppState.date, AppState.participants);
       renderParticipants();
       setSyncStatus('Sincronizado', 'status-synced');
+      if (isManual) {
+        showToast('Planilla sincronizada con éxito', 'success');
+      }
     } else {
-      throw new Error(data.error || 'Respuesta inválida de Google Sheets');
+      throw new Error(data.error || 'Respuesta no válida de Google Sheets');
     }
   } catch (error) {
-    console.warn('Fallo al cargar de Sheets, cargando caché local:', error);
-    loadLocalData();
-    setSyncStatus('Modo Offline', 'status-demo');
-    showToast('Sin conexión a Sheets. Usando datos locales.', 'error');
+    console.warn('Conexión con Sheets no disponible en este momento:', error);
+    // IMPORTANTE: NO borramos los participantes; el profesor ya los tiene en pantalla listos para operar
+    setSyncStatus('Offline (Toca reintentar)', 'status-demo');
+    if (isManual) {
+      showToast('No se pudo conectar con Sheets. Usando datos locales.', 'error');
+    }
   }
 }
 
 function loadLocalData() {
-  const cacheKey = `asistencia_${AppState.date}`;
-  const cached = localStorage.getItem(cacheKey);
-  
-  if (cached) {
-    try {
-      AppState.participants = JSON.parse(cached);
-    } catch (e) {
-      AppState.participants = loadBaseParticipants();
-    }
-  } else {
-    AppState.participants = loadBaseParticipants();
-  }
-  
-  renderParticipants();
+  loadInstantData();
 }
 
 function loadBaseParticipants() {
+  // 1. Intentar cargar desde la lista base guardada de sincronizaciones previas
   const savedBase = localStorage.getItem('asistencia_base_participants');
   if (savedBase) {
     try {
       const list = JSON.parse(savedBase);
-      return list.map(p => ({ ...p, present: false, currentLevel: null }));
+      if (Array.isArray(list) && list.length > 0) {
+        return list.map((p, idx) => ({
+          id: p.id || (idx + 2),
+          orderIndex: p.orderIndex !== undefined ? p.orderIndex : idx,
+          name: p.name,
+          bestLevel: p.bestLevel !== undefined ? p.bestLevel : null,
+          currentLevel: null,
+          present: false
+        }));
+      }
     } catch (e) {}
   }
+
+  // 2. Si no hay base guardada, buscar cualquier fecha previa en localStorage
+  try {
+    const allKeys = Object.keys(localStorage);
+    const dateKeys = allKeys.filter(k => k.startsWith('asistencia_20')).sort().reverse();
+    for (const k of dateKeys) {
+      const raw = localStorage.getItem(k);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((p, idx) => ({
+            id: p.id || (idx + 2),
+            orderIndex: p.orderIndex !== undefined ? p.orderIndex : idx,
+            name: p.name,
+            bestLevel: p.bestLevel !== undefined ? p.bestLevel : null,
+            currentLevel: null,
+            present: false
+          }));
+        }
+      }
+    }
+  } catch (e) {}
+
+  // 3. Fallback a datos de prueba solo si nunca se han cargado datos
   return JSON.parse(JSON.stringify(DEMO_PARTICIPANTS));
 }
 
@@ -373,8 +508,9 @@ function saveLocalCache(dateStr, participants) {
   localStorage.setItem(`asistencia_${dateStr}`, JSON.stringify(participants));
   
   // Actualizar lista base de nombres y mejores niveles
-  const base = participants.map(p => ({
-    id: p.id,
+  const base = participants.map((p, idx) => ({
+    id: p.id || (idx + 2),
+    orderIndex: p.orderIndex !== undefined ? p.orderIndex : idx,
     name: p.name,
     bestLevel: p.bestLevel
   }));
@@ -586,6 +722,7 @@ function createParticipantCard(p, index, total) {
 
   select.addEventListener('change', (e) => {
     e.stopPropagation();
+    p.userModified = true;
     const val = e.target.value;
     if (val === '') {
       p.currentLevel = null;
@@ -630,6 +767,7 @@ function createParticipantCard(p, index, total) {
 
 function toggleParticipantPresent(p) {
   p.present = !p.present;
+  p.userModified = true;
   
   // Buscar tarjeta en el DOM
   const cards = DOM.participantsList.children;
@@ -670,6 +808,7 @@ function toggleAllAttendance() {
   
   AppState.participants.forEach(p => {
     p.present = shouldPresent;
+    p.userModified = true;
   });
 
   renderParticipants();
@@ -788,11 +927,11 @@ async function saveAttendance() {
   };
 
   try {
-    const res = await fetch(AppState.gasUrl, {
+    const res = await fetchWithTimeout(AppState.gasUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
-    });
+    }, 25000);
 
     const data = await res.json();
     if (data.success) {
@@ -893,7 +1032,7 @@ async function testConnection() {
   DOM.testResult.className = 'test-result';
 
   try {
-    const res = await fetch(`${url}?date=${encodeURIComponent(AppState.date)}`, { method: 'GET' });
+    const res = await fetchWithTimeout(`${url}?date=${encodeURIComponent(AppState.date)}`, { method: 'GET' }, 20000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     
@@ -948,7 +1087,11 @@ function updateOnlineStatus() {
   if (!AppState.isOnline) {
     setSyncStatus('Sin Internet', 'status-demo');
   } else {
-    updateSyncBadge();
+    if (AppState.gasUrl) {
+      loadData(false);
+    } else {
+      updateSyncBadge();
+    }
   }
 }
 
@@ -1089,7 +1232,7 @@ function initInstallPrompt() {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=2.4')
+      navigator.serviceWorker.register('sw.js?v=2.5')
         .then(reg => {
           reg.update();
           console.log('Service Worker registrado con éxito:', reg.scope);
