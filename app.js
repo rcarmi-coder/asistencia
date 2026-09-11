@@ -1026,7 +1026,7 @@ function openShareModal() {
 
 function shareViaWhatsapp() {
   const shareUrl = getShareUrl();
-  const text = `¡Hola! Aquí tienes la app para tomar la asistencia del curso deportivo: ${shareUrl}\n\n(Al abrirla en tu teléfono ya viene conectada a la planilla y puedes agregarla a tu pantalla de inicio como app).`;
+  const text = `¡Hola! Aquí tienes la app para tomar la asistencia de Tarucas: ${shareUrl}\n\n(Al abrirla en tu teléfono ya viene conectada a la planilla y puedes agregarla a tu pantalla de inicio como app).`;
   const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
   window.open(whatsappUrl, '_blank');
 }
@@ -1089,7 +1089,7 @@ function initInstallPrompt() {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=2.3')
+      navigator.serviceWorker.register('sw.js?v=2.4')
         .then(reg => {
           reg.update();
           console.log('Service Worker registrado con éxito:', reg.scope);

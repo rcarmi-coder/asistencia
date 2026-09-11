@@ -1,7 +1,7 @@
 {
-  "name": "Asistencia Deportiva",
-  "short_name": "Asistencia",
-  "description": "Control móvil de asistencia y niveles deportivos con sincronización a Google Sheets",
+  "name": "Asistencia Tarucas",
+  "short_name": "Tarucas",
+  "description": "Control móvil de asistencia y niveles para Tarucas con sincronización a Google Sheets",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

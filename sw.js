@@ -1,12 +1,14 @@
-const CACHE_NAME = 'asistencia-cache-v4';
+const CACHE_NAME = 'asistencia-cache-v5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './styles.css?v=2.3',
-  './app.js?v=2.3',
+  './styles.css?v=2.4',
+  './app.js?v=2.4',
   './manifest.json',
+  './icons/tarucas-logo.png',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './icons/apple-touch-icon.png'
 ];
 
 // Instalación: Forzar que el nuevo Service Worker tome el control inmediatamente
