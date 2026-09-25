@@ -118,7 +118,26 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = subscribeAttendanceSession(selectedDate, (loadedSession) => {
       if (loadedSession) {
-        setSession(loadedSession);
+        // Sanitize: filter out any orphaned IDs not in current participants
+        const validIdSet = new Set(participants.map((p) => p.id));
+        const sanitizedAsistencias: Record<string, AttendanceRecord> = {};
+        let realPresentCount = 0;
+
+        if (loadedSession.asistencias) {
+          Object.entries(loadedSession.asistencias).forEach(([id, rec]) => {
+            if (validIdSet.size === 0 || validIdSet.has(id)) {
+              sanitizedAsistencias[id] = rec;
+              if (rec?.presente) realPresentCount++;
+            }
+          });
+        }
+
+        setSession({
+          ...loadedSession,
+          asistencias: sanitizedAsistencias,
+          totalPresentes: realPresentCount,
+          totalAusentes: Math.max(0, (participants.length || loadedSession.totalAusentes) - realPresentCount),
+        });
       } else {
         // Create blank virtual session
         setSession({
@@ -126,14 +145,14 @@ export default function App() {
           fecha: selectedDate,
           asistencias: {},
           totalPresentes: 0,
-          totalAusentes: 0,
+          totalAusentes: participants.length,
           sincronizadoSheets: false,
         });
       }
     });
 
     return () => unsubscribe();
-  }, [selectedDate]);
+  }, [selectedDate, participants]);
 
   // Handle Sheets Sync
   const performSyncToSheets = useCallback(
@@ -307,8 +326,13 @@ export default function App() {
     setSession(updatedSession);
     await saveAttendanceSession(updatedSession);
 
-    if (present) fireAllPresentConfetti();
-    scheduleAutoSync(updatedSession);
+    if (present) {
+      fireAllPresentConfetti();
+      scheduleAutoSync(updatedSession);
+    } else {
+      // Clear immediately in Sheets too
+      performSyncToSheets(updatedSession);
+    }
   };
 
   // Change selected date
@@ -403,28 +427,41 @@ export default function App() {
         for (const p of result.participants) {
           await saveParticipant(p);
         }
-        if (result.rawAttendance && session) {
-          const updatedAsistencias = { ...session.asistencias };
-          let presentCount = 0;
-          result.participants.forEach((p) => {
-            const att = result.rawAttendance?.[p.id];
+        if (result.participants.length > 0) {
+          // Map attendance from Sheet by normalized participant name
+          const sheetAttByName = new Map<string, { present: boolean; level: number }>();
+          result.participants.forEach((sp) => {
+            const att = result.rawAttendance?.[sp.id];
             if (att) {
-              if (att.present) presentCount++;
-              updatedAsistencias[p.id] = {
-                presente: att.present,
-                nivel: att.level,
-                actualizadoEn: new Date().toISOString(),
-                hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              };
+              sheetAttByName.set(sp.nombre.trim().toLowerCase(), att);
             }
           });
+
+          // Determine target participants (prefer app participants, fallback to imported)
+          const targetList = participants.length > 0 ? participants : result.participants;
+          const updatedAsistencias: Record<string, AttendanceRecord> = {};
+          let presentCount = 0;
+
+          targetList.forEach((p) => {
+            const nameKey = p.nombre.trim().toLowerCase();
+            const sheetRec = sheetAttByName.get(nameKey);
+            const isPresent = Boolean(sheetRec?.present);
+            if (isPresent) presentCount++;
+
+            updatedAsistencias[p.id] = {
+              presente: isPresent,
+              nivel: sheetRec?.level || p.mejorNivel || 1,
+              actualizadoEn: new Date().toISOString(),
+              hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            };
+          });
+
           const updatedSession: AttendanceSession = {
-            ...session,
             id: targetDate,
             fecha: targetDate,
             asistencias: updatedAsistencias,
             totalPresentes: presentCount,
-            totalAusentes: result.participants.length - presentCount,
+            totalAusentes: Math.max(0, targetList.length - presentCount),
             sincronizadoSheets: true,
             ultimaSincronizacionSheets: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           };
@@ -566,7 +603,7 @@ export default function App() {
         </div>
 
         {/* Date Title Banner */}
-        <div className="flex items-center justify-between px-1">
+        <div className="flex items-center justify-between px-1 flex-wrap gap-2">
           <div>
             <h2 className="text-lg sm:text-xl font-extrabold text-slate-100 tracking-tight">
               {formattedDateTitle}
@@ -575,6 +612,18 @@ export default function App() {
               Toca sobre cada alumno para marcar asistencia o ajusta su nivel del 1 al 12
             </p>
           </div>
+
+          {session && session.totalPresentes > 0 && (
+            <button
+              type="button"
+              onClick={() => handleMarkAll(false)}
+              className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+              title="Poner todos los alumnos en ausente (0 presentes / sin entrenamiento)"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Sin entrenamiento (0)</span>
+            </button>
+          )}
         </div>
 
         {/* Helper banner if selected date has 0 presents */}
