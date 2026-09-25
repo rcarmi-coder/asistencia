@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, ChevronDown, Sparkles, Trophy } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 import { Participant, AttendanceRecord } from '../types';
 import { LEVELS, getLevelInfo } from '../lib/levels';
 
@@ -20,8 +20,6 @@ export const StudentCard: React.FC<StudentCardProps> = ({
   const isPresent = Boolean(attendanceRecord?.presente);
   // Current session level or fallback to participant's registered level
   const currentLevel = attendanceRecord?.nivel || participant.mejorNivel || 1;
-  const bestLevel = participant.mejorNivel || 1;
-  const isNewRecord = isPresent && currentLevel > bestLevel;
 
   const levelInfo = getLevelInfo(currentLevel);
 
@@ -63,30 +61,19 @@ export const StudentCard: React.FC<StudentCardProps> = ({
             <Check className={`w-5 h-5 stroke-[3] transition-opacity ${isPresent ? 'opacity-100 text-slate-950' : 'opacity-0'}`} />
           </div>
 
-          {/* Student name & badges: Structured cleanly without text collisions */}
+          {/* Student name & optional category */}
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h3 className={`text-sm sm:text-base font-bold leading-tight ${isPresent ? 'text-slate-100 font-extrabold' : 'text-slate-200'}`}>
-                {participant.nombre}
-              </h3>
-              {isNewRecord && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 animate-bounce shrink-0">
-                  <Sparkles className="w-3 h-3 text-amber-400" /> ¡Récord!
-                </span>
-              )}
-            </div>
+            <h3 className={`text-sm sm:text-base font-bold leading-tight ${isPresent ? 'text-slate-100 font-extrabold' : 'text-slate-200'}`}>
+              {participant.nombre}
+            </h3>
 
-            <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
-              {participant.categoria && (
-                <span className="px-1.5 py-0.5 rounded-md bg-slate-800 border border-slate-700/70 text-[10px] text-slate-300 font-medium shrink-0">
+            {participant.categoria && (
+              <div className="mt-1">
+                <span className="px-1.5 py-0.5 rounded-md bg-slate-800 border border-slate-700/70 text-[10px] text-slate-300 font-medium">
                   {participant.categoria}
                 </span>
-              )}
-              <span className="flex items-center gap-1 text-slate-400 shrink-0">
-                <Trophy className="w-3 h-3 text-amber-400/80" />
-                Récord: <strong className="text-slate-200 font-semibold">Nivel {bestLevel}</strong>
-              </span>
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
