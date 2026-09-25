@@ -1,0 +1,87 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation for Participant
+    function isValidParticipant(data) {
+      return data.keys().hasAll(['nombre', 'mejorNivel', 'activo']) &&
+        data.nombre is string && data.nombre.size() >= 1 && data.nombre.size() <= 100 &&
+        data.mejorNivel is number && data.mejorNivel >= 1 && data.mejorNivel <= 12 &&
+        data.activo is bool &&
+        (!('categoria' in data) || (data.categoria is string && data.categoria.size() <= 50)) &&
+        (!('orden' in data) || data.orden is number) &&
+        (!('creadoEn' in data) || (data.creadoEn is string && data.creadoEn.size() <= 50)) &&
+        (!('actualizadoEn' in data) || (data.actualizadoEn is string && data.actualizadoEn.size() <= 50));
+    }
+
+    // Validation for AttendanceSession
+    function isValidAttendanceSession(data) {
+      return data.keys().hasAll(['fecha', 'totalPresentes', 'sincronizadoSheets']) &&
+        data.fecha is string && data.fecha.size() == 10 && data.fecha.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        data.totalPresentes is number && data.totalPresentes >= 0 &&
+        data.sincronizadoSheets is bool &&
+        (!('asistencias' in data) || data.asistencias is map) &&
+        (!('totalAusentes' in data) || data.totalAusentes is number) &&
+        (!('registradoPor' in data) || (data.registradoPor is string && data.registradoPor.size() <= 100)) &&
+        (!('ultimaSincronizacionSheets' in data) || (data.ultimaSincronizacionSheets is string && data.ultimaSincronizacionSheets.size() <= 50)) &&
+        (!('creadoEn' in data) || (data.creadoEn is string && data.creadoEn.size() <= 50)) &&
+        (!('actualizadoEn' in data) || (data.actualizadoEn is string && data.actualizadoEn.size() <= 50));
+    }
+
+    // Validation for AppSettings
+    function isValidAppSettings(data) {
+      return (!('appsScriptUrl' in data) || (data.appsScriptUrl is string && data.appsScriptUrl.size() <= 500)) &&
+        (!('spreadsheetUrl' in data) || (data.spreadsheetUrl is string && data.spreadsheetUrl.size() <= 500)) &&
+        (!('nombreEscuela' in data) || (data.nombreEscuela is string && data.nombreEscuela.size() <= 100)) &&
+        (!('autoSyncSheets' in data) || data.autoSyncSheets is bool) &&
+        (!('actualizadoEn' in data) || (data.actualizadoEn is string && data.actualizadoEn.size() <= 50));
+    }
+
+    // Rules for Participantes
+    match /participantes/{participantId} {
+      allow read: if true;
+      allow create: if isValidId(participantId) && isValidParticipant(incoming());
+      allow update: if isValidId(participantId) && isValidParticipant(incoming());
+      allow delete: if isValidId(participantId);
+    }
+
+    // Rules for Asistencias
+    match /asistencias/{fecha} {
+      allow read: if true;
+      allow create: if isValidId(fecha) && isValidAttendanceSession(incoming());
+      allow update: if isValidId(fecha) && isValidAttendanceSession(incoming());
+      allow delete: if isValidId(fecha);
+    }
+
+    // Rules for Configuracion
+    match /configuracion/{configId} {
+      allow read: if true;
+      allow create: if isValidId(configId) && isValidAppSettings(incoming());
+      allow update: if isValidId(configId) && isValidAppSettings(incoming());
+      allow delete: if isValidId(configId);
+    }
+  }
+}

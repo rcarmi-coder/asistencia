@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "Participant": {
+      "title": "Participant",
+      "description": "Alumno o deportista registrado en la escuela",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "nombre": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "mejorNivel": { "type": "number" },
+        "categoria": { "type": "string", "maxLength": 50 },
+        "activo": { "type": "boolean" },
+        "orden": { "type": "number" },
+        "creadoEn": { "type": "string", "maxLength": 50 },
+        "actualizadoEn": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["nombre", "mejorNivel", "activo"]
+    },
+    "AttendanceSession": {
+      "title": "AttendanceSession",
+      "description": "Sesión diaria de asistencia y niveles",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "fecha": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$", "maxLength": 10 },
+        "asistencias": { "type": "object" },
+        "totalPresentes": { "type": "number" },
+        "totalAusentes": { "type": "number" },
+        "registradoPor": { "type": "string", "maxLength": 100 },
+        "sincronizadoSheets": { "type": "boolean" },
+        "ultimaSincronizacionSheets": { "type": "string", "maxLength": 50 },
+        "creadoEn": { "type": "string", "maxLength": 50 },
+        "actualizadoEn": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["fecha", "totalPresentes", "sincronizadoSheets"]
+    },
+    "AppSettings": {
+      "title": "AppSettings",
+      "description": "Configuración de la app y conexión a Google Sheets",
+      "type": "object",
+      "properties": {
+        "appsScriptUrl": { "type": "string", "maxLength": 500 },
+        "spreadsheetUrl": { "type": "string", "maxLength": 500 },
+        "nombreEscuela": { "type": "string", "maxLength": 100 },
+        "autoSyncSheets": { "type": "boolean" },
+        "actualizadoEn": { "type": "string", "maxLength": 50 }
+      }
+    }
+  },
+  "firestore": {
+    "/participantes/{participantId}": {
+      "schema": "Participant",
+      "description": "Colección de participantes y sus niveles actuales"
+    },
+    "/asistencias/{fecha}": {
+      "schema": "AttendanceSession",
+      "description": "Registros de asistencia por fecha"
+    },
+    "/configuracion/{configId}": {
+      "schema": "AppSettings",
+      "description": "Ajustes globales de la aplicación y Google Apps Script"
+    }
+  }
+}

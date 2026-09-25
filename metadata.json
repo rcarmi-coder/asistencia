@@ -1,0 +1,6 @@
+{
+  "name": "Registro de Asistencia y Niveles",
+  "description": "Sistema ágil de registro de asistencia y progresión de niveles con sincronización instantánea en Firebase y reportes en Google Sheets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
