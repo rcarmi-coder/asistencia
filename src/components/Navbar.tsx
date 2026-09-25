@@ -55,8 +55,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             <h1 className="text-base font-bold text-slate-100 truncate tracking-tight flex items-center gap-1.5">
               <span>{schoolName || 'Registro de Asistencia'}</span>
             </h1>
-            <div className="flex items-center gap-2 text-xs">
-              <span className="flex items-center gap-1 text-emerald-400 font-medium">
+            <div className="flex items-center gap-1.5 text-[11px]">
+              <span className="flex items-center gap-1 text-emerald-400 font-medium shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 Firebase
               </span>
@@ -64,16 +64,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={onOpenSyncModal}
-                className="hover:underline flex items-center gap-1 cursor-pointer transition-colors text-slate-300"
+                className="hover:underline flex items-center gap-1 cursor-pointer transition-colors text-slate-300 shrink-0"
                 title="Abrir sincronizador de Google Sheets"
               >
                 {sheetsConfigured ? (
                   <span className="text-teal-400 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Sheets (Sincronizar)
+                    <CheckCircle2 className="w-3 h-3" /> Sheets OK
                   </span>
                 ) : (
                   <span className="text-amber-400/90 flex items-center gap-1">
-                    <CloudRain className="w-3 h-3" /> Configurar Sheets
+                    <CloudRain className="w-3 h-3" /> Sheets
                   </span>
                 )}
               </button>
