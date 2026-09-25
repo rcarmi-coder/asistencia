@@ -82,6 +82,33 @@ export async function importParticipantsFromSheets(appsScriptUrl: string, dateSt
   }
 }
 
+export async function addStudentToSheets(
+  appsScriptUrl: string,
+  name: string,
+  bestLevel: number = 1
+): Promise<{ success: boolean; message: string }> {
+  if (!appsScriptUrl || !appsScriptUrl.trim() || !name || !name.trim()) {
+    return { success: false, message: 'URL o nombre faltante' };
+  }
+  const cleanUrl = appsScriptUrl.trim();
+  try {
+    await fetch(cleanUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'add_student',
+        name: name.trim(),
+        nombre: name.trim(),
+        bestLevel,
+        mejorNivel: bestLevel,
+      }),
+    });
+    return { success: true, message: `Alumno ${name} agregado en Google Sheets` };
+  } catch (err: any) {
+    return { success: false, message: err.message || String(err) };
+  }
+}
+
 export async function sendAttendanceToSheets(
   appsScriptUrl: string,
   session: AttendanceSession,
@@ -98,6 +125,24 @@ export async function sendAttendanceToSheets(
   }
 
   const cleanUrl = appsScriptUrl.trim();
+
+  // 1. Pre-verificación: Asegurar que todos los alumnos de la app existan en la planilla Google Sheets
+  try {
+    const sheetData = await importParticipantsFromSheets(cleanUrl, session.fecha);
+    if (sheetData.success && Array.isArray(sheetData.participants)) {
+      const existingNames = new Set(
+        sheetData.participants.map((sp) => sp.nombre.trim().toLowerCase())
+      );
+      const missingStudents = participants.filter(
+        (p) => !existingNames.has(p.nombre.trim().toLowerCase())
+      );
+      for (const missing of missingStudents) {
+        await addStudentToSheets(cleanUrl, missing.nombre, missing.mejorNivel || 1);
+      }
+    }
+  } catch (preCheckErr) {
+    console.warn('Pre-check for missing students in sheets:', preCheckErr);
+  }
 
   // Dual format: Compatible with both the original Code.gs in repo AND modern formats
   const records = participants.map((p) => {

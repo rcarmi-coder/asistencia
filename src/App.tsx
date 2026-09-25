@@ -30,7 +30,7 @@ import {
   getAppSettings,
   saveAppSettings,
 } from './lib/firestoreService';
-import { sendAttendanceToSheets, importParticipantsFromSheets } from './lib/sheetsSync';
+import { sendAttendanceToSheets, importParticipantsFromSheets, addStudentToSheets } from './lib/sheetsSync';
 import { Participant, AttendanceSession, AppSettings, SyncStatus, AttendanceRecord } from './types';
 import { Navbar } from './components/Navbar';
 import { AttendanceStats } from './components/AttendanceStats';
@@ -503,60 +503,60 @@ export default function App() {
             )}
           </div>
 
-          {/* Sync status & Manual Sync Button */}
-          <div className="flex items-center justify-between md:justify-end gap-3 flex-wrap">
+          {/* Sync status & Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between md:justify-end gap-2.5">
             <div className="text-xs">
               {syncStatus.state === 'syncing' ? (
                 <span className="flex items-center gap-1.5 text-amber-400 font-medium">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>{syncStatus.message || 'Sincronizando...'}</span>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                  <span className="truncate">{syncStatus.message || 'Sincronizando...'}</span>
                 </span>
               ) : syncStatus.state === 'success' ? (
                 <span className="flex items-center gap-1.5 text-teal-400 font-medium">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span className="truncate max-w-[200px]">{syncStatus.message}</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate max-w-[240px]">{syncStatus.message}</span>
                 </span>
               ) : syncStatus.state === 'error' ? (
                 <span className="flex items-center gap-1.5 text-rose-400 font-medium">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span className="truncate max-w-[200px]">{syncStatus.message}</span>
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate max-w-[240px]">{syncStatus.message}</span>
                 </span>
               ) : (
                 <span className="text-slate-400 flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-emerald-400" />
+                  <Zap className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   <span>Sincronización instantánea</span>
                 </span>
               )}
             </div>
 
             {/* Action Buttons: Traer de Sheets & Enviar a Sheets */}
-            <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-1.5 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => handleImportFromSheets(selectedDate)}
                 disabled={syncStatus.state === 'syncing' || !settings.appsScriptUrl}
-                className="px-3 sm:px-3.5 py-2 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 active:scale-95 disabled:opacity-40 text-xs font-bold text-slate-950 flex items-center gap-1.5 shadow-md shadow-teal-500/20 transition-all cursor-pointer"
-                title="Descargar alumnos y marcas de la planilla Google Sheets hacia Firebase"
+                className="px-3 sm:px-3.5 py-2 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 active:scale-95 disabled:opacity-40 text-xs font-bold text-slate-950 flex items-center justify-center gap-1.5 shadow-md shadow-teal-500/20 transition-all cursor-pointer"
+                title="Descargar alumnos y marcas de Google Sheets hacia Firebase"
               >
-                <Download className="w-4 h-4" />
-                <span>Traer de Sheets</span>
+                <Download className="w-4 h-4 shrink-0" />
+                <span>Traer Sheets</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => session && performSyncToSheets(session)}
                 disabled={syncStatus.state === 'syncing' || !settings.appsScriptUrl}
-                className="px-3 sm:px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-95 disabled:opacity-40 text-xs font-bold text-slate-950 flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+                className="px-3 sm:px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-95 disabled:opacity-40 text-xs font-bold text-slate-950 flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
                 title="Enviar y guardar la asistencia de la app en la planilla Google Sheets"
               >
-                <Upload className="w-4 h-4" />
-                <span>Enviar a Sheets</span>
+                <Upload className="w-4 h-4 shrink-0" />
+                <span>Enviar Sheets</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsSyncModalOpen(true)}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 transition-colors cursor-pointer"
+                className="hidden sm:flex p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 transition-colors cursor-pointer items-center justify-center"
                 title="Centro de sincronización (Traer historial de múltiples días)"
               >
                 <SlidersHorizontal className="w-4 h-4 text-slate-300" />
@@ -651,14 +651,14 @@ export default function App() {
           </div>
 
           {/* Quick Filter Pills & Bulk Toggles */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t border-slate-800/80">
             {/* Status pills */}
-            <div className="flex items-center gap-1.5">
+            <div className="grid grid-cols-3 sm:flex items-center gap-1.5 w-full sm:w-auto">
               <button
                 onClick={() => setStatusFilter('all')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                className={`py-1.5 px-2 sm:px-3 text-center rounded-lg text-xs font-semibold transition-colors ${
                   statusFilter === 'all'
-                    ? 'bg-emerald-500 text-slate-950'
+                    ? 'bg-emerald-500 text-slate-950 font-bold'
                     : 'bg-slate-800 text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -666,9 +666,9 @@ export default function App() {
               </button>
               <button
                 onClick={() => setStatusFilter('present')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                className={`py-1.5 px-2 sm:px-3 text-center rounded-lg text-xs font-semibold transition-colors ${
                   statusFilter === 'present'
-                    ? 'bg-emerald-500 text-slate-950'
+                    ? 'bg-emerald-500 text-slate-950 font-bold'
                     : 'bg-slate-800 text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -676,9 +676,9 @@ export default function App() {
               </button>
               <button
                 onClick={() => setStatusFilter('absent')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                className={`py-1.5 px-2 sm:px-3 text-center rounded-lg text-xs font-semibold transition-colors ${
                   statusFilter === 'absent'
-                    ? 'bg-emerald-500 text-slate-950'
+                    ? 'bg-emerald-500 text-slate-950 font-bold'
                     : 'bg-slate-800 text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -687,21 +687,21 @@ export default function App() {
             </div>
 
             {/* Quick Bulk Actions */}
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
               <button
                 onClick={() => handleMarkAll(true)}
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-xs font-semibold text-emerald-400 flex items-center gap-1 border border-slate-700/60 transition-colors"
+                className="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-xs font-semibold text-emerald-400 flex items-center justify-center gap-1.5 border border-slate-700/60 transition-colors"
                 title="Marcar todos como presentes"
               >
-                <CheckCheck className="w-3.5 h-3.5" />
+                <CheckCheck className="w-3.5 h-3.5 shrink-0" />
                 <span>Marcar Todos</span>
               </button>
               <button
                 onClick={() => handleMarkAll(false)}
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-xs font-semibold text-slate-400 hover:text-slate-200 flex items-center gap-1 border border-slate-700/60 transition-colors"
+                className="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-xs font-semibold text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 border border-slate-700/60 transition-colors"
                 title="Desmarcar todos"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
+                <RotateCcw className="w-3.5 h-3.5 shrink-0" />
                 <span>Limpiar</span>
               </button>
             </div>
@@ -789,6 +789,9 @@ export default function App() {
         participants={participants}
         onSaveParticipant={async (p) => {
           await saveParticipant(p);
+          if (settings.appsScriptUrl) {
+            addStudentToSheets(settings.appsScriptUrl, p.nombre, p.mejorNivel).catch(console.error);
+          }
         }}
         onDeleteParticipant={async (id) => {
           await deleteParticipant(id);

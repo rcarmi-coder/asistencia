@@ -251,22 +251,22 @@ export const SyncSheetsModal: React.FC<SyncSheetsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl max-h-[92dvh] overflow-hidden flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-800 gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center shrink-0">
               <RefreshCw className="w-4 h-4" />
             </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-100">Sincronización con Google Sheets</h3>
-              <p className="text-xs text-slate-400">Intercambio de datos entre la Planilla y Firebase</p>
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-bold text-slate-100 truncate">Sincronización Sheets</h3>
+              <p className="text-[11px] sm:text-xs text-slate-400 truncate">Planilla y Firebase</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors"
+            className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -276,38 +276,41 @@ export const SyncSheetsModal: React.FC<SyncSheetsModalProps> = ({
         <div className="flex border-b border-slate-800 bg-slate-950/40">
           <button
             onClick={() => { setActiveTab('import'); setStatusMsg(null); }}
-            className={`flex-1 py-3 px-4 text-xs font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${
+            className={`flex-1 py-2.5 sm:py-3 px-2 sm:px-4 text-xs font-bold flex items-center justify-center gap-1.5 border-b-2 transition-colors ${
               activeTab === 'import'
                 ? 'border-teal-400 text-teal-400 bg-teal-500/10'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Download className="w-4 h-4" />
-            <span>Traer de Sheets a Firebase</span>
+            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="hidden sm:inline">Traer de Sheets</span>
+            <span className="sm:hidden">Traer</span>
           </button>
 
           <button
             onClick={() => { setActiveTab('export'); setStatusMsg(null); }}
-            className={`flex-1 py-3 px-4 text-xs font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${
+            className={`flex-1 py-2.5 sm:py-3 px-2 sm:px-4 text-xs font-bold flex items-center justify-center gap-1.5 border-b-2 transition-colors ${
               activeTab === 'export'
                 ? 'border-emerald-400 text-emerald-400 bg-emerald-500/10'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Upload className="w-4 h-4" />
-            <span>Enviar de Firebase a Sheets</span>
+            <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="hidden sm:inline">Enviar a Sheets</span>
+            <span className="sm:hidden">Enviar</span>
           </button>
 
           <button
             onClick={() => { setActiveTab('history'); setStatusMsg(null); }}
-            className={`flex-1 py-3 px-4 text-xs font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${
+            className={`flex-1 py-2.5 sm:py-3 px-2 sm:px-4 text-xs font-bold flex items-center justify-center gap-1.5 border-b-2 transition-colors ${
               activeTab === 'history'
                 ? 'border-sky-400 text-sky-400 bg-sky-500/10'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Calendar className="w-4 h-4" />
-            <span>Traer Historial</span>
+            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="hidden sm:inline">Traer Historial</span>
+            <span className="sm:hidden">Historial</span>
           </button>
         </div>
 

@@ -87,28 +87,29 @@ export const ReportsModal: React.FC<ReportsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl max-h-[92dvh] overflow-hidden flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
+        <div className="flex items-center justify-between px-3.5 sm:px-6 py-3 sm:py-4 border-b border-slate-800 gap-2">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
               <BarChart2 className="w-4 h-4" />
             </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-100">Historial y Reportes de Asistencia</h3>
-              <p className="text-xs text-slate-400">Resumen de jornadas registradas</p>
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-bold text-slate-100 truncate">Historial y Reportes</h3>
+              <p className="text-[11px] sm:text-xs text-slate-400 truncate">Resumen de jornadas</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={handleExportCSV}
               disabled={sessions.length === 0}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-xs font-semibold text-slate-200 flex items-center gap-1.5 border border-slate-700 transition-colors"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-xs font-semibold text-slate-200 flex items-center gap-1.5 border border-slate-700 transition-colors"
               title="Descargar matriz en Excel/CSV"
             >
-              <Download className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Exportar CSV</span>
+              <Download className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="hidden sm:inline">Exportar CSV</span>
+              <span className="sm:hidden">CSV</span>
             </button>
 
             {spreadsheetUrl && (
@@ -116,10 +117,11 @@ export const ReportsModal: React.FC<ReportsModalProps> = ({
                 href={spreadsheetUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-colors"
+                className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-colors"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Abrir Google Sheet</span>
+                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">Abrir Google Sheet</span>
+                <span className="sm:hidden">Sheet</span>
               </a>
             )}
 

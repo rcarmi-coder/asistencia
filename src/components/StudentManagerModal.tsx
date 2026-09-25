@@ -99,37 +99,39 @@ export const StudentManagerModal: React.FC<StudentManagerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[92dvh] overflow-hidden flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-          <div>
-            <h3 className="text-base font-bold text-slate-100">Gestión de Alumnos / Deportistas</h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {participants.length} alumnos registrados en la base de datos
+        <div className="flex items-center justify-between px-3.5 sm:px-6 py-3 sm:py-4 border-b border-slate-800 gap-2">
+          <div className="min-w-0">
+            <h3 className="text-sm sm:text-base font-bold text-slate-100 truncate">Alumnos / Deportistas</h3>
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate">
+              {participants.length} registrados
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {onImportFromSheets && (
               <button
                 type="button"
                 onClick={handleImport}
                 disabled={isImporting}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-teal-400 text-xs font-semibold flex items-center gap-1.5 border border-teal-500/30 transition-colors disabled:opacity-50"
+                className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-teal-400 text-xs font-semibold flex items-center gap-1.5 border border-teal-500/30 transition-colors disabled:opacity-50"
                 title="Leer alumnos directamente desde la planilla de Google Sheets"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isImporting ? 'animate-spin' : ''}`} />
-                <span>{isImporting ? 'Importando...' : 'Importar Sheets'}</span>
+                <span className="hidden sm:inline">{isImporting ? 'Importando...' : 'Importar Sheets'}</span>
+                <span className="sm:hidden">{isImporting ? '...' : 'Sheets'}</span>
               </button>
             )}
             {!isAdding && (
               <button
                 type="button"
                 onClick={startAdd}
-                className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 font-bold text-xs text-slate-950 flex items-center gap-1.5 transition-colors shadow-sm"
+                className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 font-bold text-xs text-slate-950 flex items-center gap-1.5 transition-colors shadow-sm"
               >
                 <UserPlus className="w-3.5 h-3.5" />
-                <span>Nuevo Alumno</span>
+                <span className="hidden sm:inline">Nuevo Alumno</span>
+                <span className="sm:hidden">+ Alumno</span>
               </button>
             )}
             <button
