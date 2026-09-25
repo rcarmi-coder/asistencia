@@ -41,8 +41,15 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
         {/* Logo and School Name */}
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-950/50 shrink-0">
-            <Zap className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700/80 p-1 flex items-center justify-center shadow-lg shadow-emerald-950/30 shrink-0 overflow-hidden">
+            <img 
+              src="./icons/tarucas-logo.png" 
+              alt="Tarucas Logo" 
+              className="w-full h-full object-contain" 
+              onError={(e) => { 
+                (e.currentTarget as HTMLElement).style.display = 'none'; 
+              }} 
+            />
           </div>
           <div className="min-w-0">
             <h1 className="text-base font-bold text-slate-100 truncate tracking-tight flex items-center gap-1.5">
