@@ -2,6 +2,7 @@
    VARIABLES DE COLOR Y TEMA
    ========================================================================== */
 :root {
+  color-scheme: dark;
   --bg-primary: #0b0f19;
   --bg-surface: #151d30;
   --bg-surface-elevated: #1e2942;
@@ -592,6 +593,7 @@ body.is-reordering .check-target {
 .level-select {
   appearance: none;
   -webkit-appearance: none;
+  -moz-appearance: none;
   background: var(--bg-surface-elevated);
   border: 1.5px solid var(--border-color);
   color: var(--text-primary);
@@ -604,6 +606,16 @@ body.is-reordering .check-target {
   transition: all 0.2s;
   min-width: 90px;
   text-align: left;
+}
+
+.level-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+}
+
+.participant-card:not(.is-present) .level-select {
+  border-color: var(--border-color);
+  color: var(--text-secondary);
 }
 
 .participant-card.is-present .level-select {

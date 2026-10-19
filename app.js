@@ -126,7 +126,7 @@ const DOM = {
 // INICIALIZACIÓN
 // =========================================================================
 // Control de versiones para forzar actualización de archivos en el navegador
-const APP_VERSION = '2.6';
+const APP_VERSION = '2.7';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Si la versión guardada es diferente o no existe, limpiar caché de la PWA
@@ -695,18 +695,22 @@ function createParticipantCard(p, index, total) {
   // 3. Menú desplegable de Nivel (1 al 12) a la derecha
   const levelContainer = document.createElement('div');
   levelContainer.className = 'level-picker-container';
+  levelContainer.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
   
   const selectWrapper = document.createElement('div');
   selectWrapper.className = 'level-select-wrapper';
 
+  const hasExplicitLevel = p.currentLevel !== null && p.currentLevel !== undefined && Number(p.currentLevel) > 0;
   const select = document.createElement('select');
-  select.className = `level-select ${p.currentLevel !== null ? 'explicit-level' : ''}`;
+  select.className = `level-select ${hasExplicitLevel ? 'explicit-level' : ''}`;
   select.setAttribute('aria-label', `Nivel para ${p.name}`);
 
   // Opción por defecto: Mantener mejor nivel previo
   const defaultOption = document.createElement('option');
   defaultOption.value = '';
-  if (p.bestLevel !== null) {
+  if (p.bestLevel !== null && p.bestLevel !== undefined) {
     defaultOption.textContent = `Mantener (${p.bestLevel})`;
   } else {
     defaultOption.textContent = `Nivel...`;
@@ -718,19 +722,17 @@ function createParticipantCard(p, index, total) {
     const opt = document.createElement('option');
     opt.value = i;
     opt.textContent = `Nivel ${i}`;
-    if (p.currentLevel === i) {
+    if (p.currentLevel !== null && Number(p.currentLevel) === i) {
       opt.selected = true;
     }
     select.appendChild(opt);
   }
 
-  // Deshabilitar select si está ausente
-  select.disabled = !p.present;
-
-  select.addEventListener('change', (e) => {
+  // Manejador unificado de cambio de nivel (change e input para máxima compatibilidad móvil y web)
+  const handleLevelChange = (e) => {
     e.stopPropagation();
     p.userModified = true;
-    const val = e.target.value;
+    const val = select.value;
     if (val === '') {
       p.currentLevel = null;
       select.classList.remove('explicit-level');
@@ -741,13 +743,16 @@ function createParticipantCard(p, index, total) {
       if (!p.present) {
         p.present = true;
         card.classList.add('is-present');
-        select.disabled = false;
         updateStats();
       }
     }
-  });
+    saveLocalCache(AppState.date, AppState.participants);
+  };
 
-  // Flecha personalizada (añadida como elemento DOM para no alterar los listeners del select)
+  select.addEventListener('change', handleLevelChange);
+  select.addEventListener('input', handleLevelChange);
+
+  // Flecha personalizada (añadida como elemento DOM)
   selectWrapper.appendChild(select);
   const arrowSpan = document.createElement('span');
   arrowSpan.className = 'level-select-arrow';
@@ -761,6 +766,14 @@ function createParticipantCard(p, index, total) {
   const levelLabel = document.createElement('span');
   levelLabel.className = 'level-label';
   levelLabel.textContent = 'NIVEL HOY';
+  levelLabel.addEventListener('click', (e) => {
+    e.stopPropagation();
+    select.focus();
+    if (typeof select.showPicker === 'function') {
+      try { select.showPicker(); } catch (err) {}
+    }
+  });
+
   levelContainer.appendChild(levelLabel);
   levelContainer.appendChild(selectWrapper);
 
@@ -782,17 +795,14 @@ function toggleParticipantPresent(p) {
     if (card.dataset.id === String(p.id || p.name)) {
       if (p.present) {
         card.classList.add('is-present');
-        const sel = card.querySelector('.level-select');
-        if (sel) sel.disabled = false;
       } else {
         card.classList.remove('is-present');
-        const sel = card.querySelector('.level-select');
-        if (sel) sel.disabled = true;
       }
       break;
     }
   }
 
+  saveLocalCache(AppState.date, AppState.participants);
   updateStats();
 }
 
@@ -1239,7 +1249,7 @@ function initInstallPrompt() {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=2.6')
+      navigator.serviceWorker.register('sw.js?v=2.7')
         .then(reg => {
           reg.update();
           console.log('Service Worker registrado con éxito:', reg.scope);

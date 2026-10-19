@@ -19,31 +19,31 @@
  *    en la configuración de la App Móvil.
  */
 
-const SHEET_NAME = "Asistencia";
+const SHEET_NAME = "AsistenciaApp";
 
 /**
- * Inicializa o recupera la hoja de asistencia con sus encabezados base.
+ * Inicializa o recupera la hoja de asistencia ("AsistenciaApp") con sus encabezados base.
  */
 function getOrCreateSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  // 1. Intentar encontrar pestaña específica (ej: "Asistencia/Nivel 2026" o "Asistencia")
-  let sheet = ss.getSheetByName("Asistencia/Nivel 2026") || ss.getSheetByName(SHEET_NAME);
+  // 1. Intentar encontrar pestaña específica "AsistenciaApp"
+  let sheet = ss.getSheetByName(SHEET_NAME);
   
-  // 2. Si no existe con ese nombre exacto, buscar cualquier pestaña que contenga "asistencia"
+  // 2. Si no se encuentra exactamente, buscar insensible a mayúsculas/minúsculas y espacios
   if (!sheet) {
     const sheets = ss.getSheets();
     for (let i = 0; i < sheets.length; i++) {
-      if (sheets[i].getName().toLowerCase().includes("asistencia")) {
+      if (sheets[i].getName().trim().toLowerCase() === SHEET_NAME.toLowerCase()) {
         sheet = sheets[i];
         break;
       }
     }
   }
   
-  // 3. Si aún no existe, usar la primera pestaña de la planilla o crearla
+  // 3. Si aún no existe, crear la pestaña "AsistenciaApp"
   if (!sheet) {
-    sheet = ss.getSheets()[0] || ss.insertSheet(SHEET_NAME);
+    sheet = ss.insertSheet(SHEET_NAME);
   }
   
   // Si la hoja está vacía, inicializar encabezados

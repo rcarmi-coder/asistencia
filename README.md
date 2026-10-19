@@ -1,6 +1,6 @@
-# 📱 Control de Asistencia Deportiva (PWA Móvil)
+# 🏉 Asistencia Tarucas (PWA Móvil)
 
-Aplicación web móvil progresiva (**PWA**) diseñada para entrenadores y profesores de cursos deportivos. Permite registrar asistencia con un toque, calificar el nivel alcanzado en la sesión (del 1 al 12) y mantener automáticamente el mejor nivel histórico de cada participante, todo sincronizado en tiempo real con una planilla de **Google Sheets**.
+Aplicación web móvil progresiva (**PWA**) diseñada para entrenadores y profesores de **Tarucas**. Permite registrar asistencia con un toque, calificar el nivel alcanzado en la sesión (del 1 al 12) y mantener automáticamente el mejor nivel histórico de cada participante, todo sincronizado en tiempo real con una planilla de **Google Sheets**.
 
 ---
 
@@ -74,7 +74,7 @@ Al publicar en GitHub Pages, obtendrás un enlace seguro con HTTPS (obligatorio 
 
 La aplicación viene con datos de prueba (Modo Demo) para que puedas probarla inmediatamente. Para conectarla a tu planilla real de Google:
 
-1. Abre tu cuenta de Google y crea una nueva planilla en [Google Sheets](https://sheets.new) (o abre la existente).
+1. Abre tu cuenta de Google y crea una nueva planilla en [Google Sheets](https://sheets.new) (o abre tu planilla existente. La app trabajará específicamente en la pestaña llamada **`AsistenciaApp`**, y si no existe la creará automáticamente).
 2. En el menú superior de Google Sheets, ve a:
    **Extensiones** > **Apps Script**.
 3. En el editor que se abrirá:

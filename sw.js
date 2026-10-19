@@ -1,9 +1,9 @@
-const CACHE_NAME = 'asistencia-cache-v7';
+const CACHE_NAME = 'asistencia-cache-v8';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './styles.css?v=2.6',
-  './app.js?v=2.6',
+  './styles.css?v=2.7',
+  './app.js?v=2.7',
   './manifest.json',
   './icons/tarucas-logo.png',
   './icons/icon-192.png',
