@@ -111,11 +111,11 @@ export const StudentCard: React.FC<StudentCardProps> = ({
           >
             {LEVELS.map((lvl) => (
               <option
-                key={lvl.number}
-                value={lvl.number}
+                key={lvl.level}
+                value={lvl.level}
                 className="bg-slate-900 text-slate-100"
               >
-                Nivel {lvl.number} - {lvl.name}
+                {lvl.name}
               </option>
             ))}
           </select>
